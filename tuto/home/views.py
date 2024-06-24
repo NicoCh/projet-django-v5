@@ -24,6 +24,8 @@ def index(request):
 
 def colloscope(request,colloscope_id):
     data = {'colloscope_id': colloscope_id}
+    PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
+    data['root'] =PROBLEMS_ROOT
     semaines = range(1,27)
 
     mid = len(groupes) // 2 + len(groupes) % 2 
@@ -190,12 +192,10 @@ def colloscope(request,colloscope_id):
     ##### Fin des contraintes et resolution #####
     #############################################
     tic=time.time()
-    status = solver.Solve()
+    #status = solver.Solve()
     toc=time.time()
 
-    print(status)
-    print(pywraplp.Solver.OPTIMAL)
 
-    data['status']=status
+    #data['status']=status
     data['temps']=toc-tic
     return render(request, 'colloscope.html',data)
