@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from home.exemple.fct_utiles import *
 from home.exemple.colles_salles import *
 
-#from home.global_vars import *
+from home.global_vars import *
 
 import ortools
 import time
@@ -28,7 +28,7 @@ def index(request):
 
 def colloscope(request,colloscope_id):
     data = {'colloscope_id': colloscope_id}
-    PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
+    #PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
 
     data['root'] =PROBLEMS_ROOT
     semaines = range(1,27)
