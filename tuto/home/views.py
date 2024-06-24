@@ -16,7 +16,7 @@ from ortools.linear_solver import pywraplp
 import locale
 import sys
 
-import .env
+
 #from time import strptime
 #from datetime import time, timedelta, date, datetime
 
