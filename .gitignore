@@ -2,3 +2,5 @@ __pycache__/
 .env
 env/
 global_vars.py
+results/
+media/colloscope/resultats
