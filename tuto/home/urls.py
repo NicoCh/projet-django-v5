@@ -4,6 +4,6 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('colloscope/<int:colloscope_id>/', views.colloscope, name='colloscope'),
+    path('colloscope/<str:colloscope_id>/', views.colloscope, name='colloscope'),
 
 ]
