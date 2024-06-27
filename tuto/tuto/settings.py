@@ -37,6 +37,9 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 # Application definition
 
+# Autoriser les requêtes cross-origin depuis tous les domaines (pour le développement uniquement)
+CORS_ALLOW_ALL_ORIGINS = True
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
