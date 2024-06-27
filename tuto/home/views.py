@@ -20,6 +20,9 @@ import os
 
 from datetime import datetime
 
+from django.http import JsonResponse, HttpResponse
+import requests
+
 def create_date_directory(base_path='results'):
     # Obtenir la date du jour au format aammdd
     today = datetime.now().strftime('%y%m%d')
@@ -44,11 +47,15 @@ def colloscope(request,colloscope_id):
     # Combiner la base URL avec les paramètres GET
     full_url = f"{PROBLEMS_ROOT}/{colloscope_id}.json"
 
+    """
     with open(full_url, 'r') as file:
         contraintes = json.load(file)
 
     file.close()
-
+    """
+    response = requests.get(full_url)
+    response.raise_for_status()  # Vérifiez les erreurs HTTP
+    contraintes = response.json()
 
     data = {'colloscope_id': full_url}
     #PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
