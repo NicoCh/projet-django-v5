@@ -21,7 +21,7 @@ import os
 from datetime import datetime
 
 from django.http import JsonResponse, HttpResponse
-import requests
+
 
 def create_date_directory(base_path='results'):
     # Obtenir la date du jour au format aammdd
