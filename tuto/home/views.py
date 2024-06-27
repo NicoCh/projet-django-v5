@@ -76,8 +76,10 @@ def colloscope(request,colloscope_id):
 
     #d=data['subjectTo'][0]
     for d in contraintes['subjectTo']:
-        solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) <= float(d['bnds']['ub']))
-        solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) >= float(d['bnds']['lb']))
+        if (d['bnds']['ub']!="INT_MAX"):
+            solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) <= float(d['bnds']['ub']))
+        if (d['bnds']['lb']!="INT_MIN"):
+            solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) >= float(d['bnds']['lb']))
         
     tic=time.time()
     status = solver.Solve()
