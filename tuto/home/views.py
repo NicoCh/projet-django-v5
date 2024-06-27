@@ -41,7 +41,7 @@ def index(request):
     return render(request, 'index.html')
 
 
-def results(request,id):
+"""def results(request,id):
     data={'id':id}
     res=f"{'../media/colloscope/resultats'}/{id}.json"
     if os.path.exists(res):
@@ -49,6 +49,7 @@ def results(request,id):
     data={'id':'json de résultats non trouvé'}
     data['path']=res
     return render(request, 'results.html',data)        
+"""
 
 def colloscope(request,colloscope_id):
 
