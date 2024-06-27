@@ -53,11 +53,11 @@ def colloscope(request,colloscope_id):
         contraintes = json.load(file)
 
     file.close()
-
+    """    
     response = requests.get(full_url)
     response.raise_for_status()  # Vérifiez les erreurs HTTP
     contraintes = response.json()
-
+    """
     data = {'colloscope_id': full_url}
     #PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
 
