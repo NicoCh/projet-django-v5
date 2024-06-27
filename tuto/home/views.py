@@ -43,12 +43,18 @@ def index(request):
 
 def results(request,id):
     data={'id':id}
-    res=f"{'../media/colloscope/resultats'}/{id}.json"
+    res = os.path.join('media', 'colloscope', 'resultats', f'{id}.json')
+    
+    # Vérifier si le fichier existe
     if os.path.exists(res):
-        return render(request, 'results.html',data)        
-    data={'id':'json de résultats non trouvé'}
-    data['path']=res
-    return render(request, 'results.html',data)        
+        # Ouvrir et lire le fichier JSON
+        with open(res, 'r') as file:
+            data = json.load(file)
+        return JsonResponse(data)
+    else:
+        # Si le fichier n'existe pas, renvoyer une réponse JSON avec un message d'erreur
+        return JsonResponse({'error': 'json de résultats non trouvé', 'path': res}, status=404)
+    
 
 
 def colloscope(request,colloscope_id):
