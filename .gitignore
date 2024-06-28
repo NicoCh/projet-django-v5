@@ -4,3 +4,4 @@ env/
 global_vars.py
 results/
 media/colloscope/resultats
+settings.py
