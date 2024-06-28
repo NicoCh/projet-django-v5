@@ -132,5 +132,6 @@ def colloscope(request,colloscope_id):
     data['status']=status
     data['temps']=toc-tic
     data['solver']=solver
+    data['dataW']=dataW
 
     return render(request, 'colloscope.html',data)
