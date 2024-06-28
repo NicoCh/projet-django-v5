@@ -43,7 +43,7 @@ def index(request):
 
 def results(request,id):
     data={'id':id}
-    res = os.path.join('media', 'colloscope', 'resultats', f'{id}.json')
+    res = os.path.join('media', 'colloscope', 'results', f'{id}.json')
     
     # Vérifier si le fichier existe
     if os.path.exists(res):
@@ -92,11 +92,15 @@ def colloscope(request,colloscope_id):
     toc=time.time()
 
     #print(pywraplp.Solver.OPTIMAL)
-    resultats = {}
+    #resultats = {}
+    #for c in colloscope:
+        #resultats[c]=colloscope[c].solution_value()
+        
+    resultats = []
     for c in colloscope:
-        resultats[c]=colloscope[c].solution_value()
+        if (colloscope[c].solution_value()):
+            resultats.append(c)
         #print(c, colloscope[c].solution_value())
-    
 
     # Obtenir la date actuelle
     current_date = datetime.now()
@@ -127,7 +131,5 @@ def colloscope(request,colloscope_id):
     data['status']=status
     data['temps']=toc-tic
     data['solver']=solver
-
-
 
     return render(request, 'colloscope.html',data)
