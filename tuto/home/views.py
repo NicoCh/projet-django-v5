@@ -92,6 +92,7 @@ def colloscope(request,colloscope_id):
     toc=time.time()
 
     #print(pywraplp.Solver.OPTIMAL)
+    """
     resultats = {}
     for c in colloscope:
         resultats[c]=colloscope[c].solution_value()
@@ -102,7 +103,7 @@ def colloscope(request,colloscope_id):
         if (colloscope[c].solution_value()):
             resultats.append(c)
         #print(c, colloscope[c].solution_value())
-    """  
+    
     # Obtenir la date actuelle
     current_date = datetime.now()
     # Préparation des données à écrire dans le fichier JSON
