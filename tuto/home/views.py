@@ -43,7 +43,7 @@ def index(request):
 
 def results(request,id):
     data={'id':id}
-    res = os.path.join('media', 'colloscope', 'results', f'{id}.json')
+    res = os.path.join('media', 'colloscope', 'resultats', f'{id}.json')
     
     # Vérifier si le fichier existe
     if os.path.exists(res):
