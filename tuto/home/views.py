@@ -133,5 +133,6 @@ def colloscope(request,colloscope_id):
     data['temps']=toc-tic
     data['solver']=solver
     data['dataW']=dataW
+    data['path']=file_path
 
     return render(request, 'colloscope.html',data)
