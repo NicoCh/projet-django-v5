@@ -38,7 +38,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 # Application definition
 
 # Autoriser les requêtes cross-origin depuis tous les domaines (pour le développement uniquement)
-CORS_ALLOW_ALL_ORIGINS = True
+#CORS_ALLOW_ALL_ORIGINS = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -63,8 +63,9 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://evalcolles.free.fr/",  
-    "http://localhost:8000",     # Pour les tests locaux
+#    "http://evalcolles.free.fr/",  
+#    "http://localhost:8000",     # Pour les tests locaux
+    "http://collesaz.fr",
 ]
 
 ROOT_URLCONF = 'tuto.urls'
