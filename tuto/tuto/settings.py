@@ -65,8 +65,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
 #    "http://evalcolles.free.fr/",  
 #    "http://localhost:8000",     # Pour les tests locaux
-    "http://collesaz.fr",
-]
+    "https://www.collesaz.fr",]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
