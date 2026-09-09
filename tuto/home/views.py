@@ -103,7 +103,7 @@ def colloscope(request,colloscope_id):
     # selon la patience voulue. Si la limite est atteinte, solver.Solve() renvoie FEASIBLE (1) au
     # lieu de OPTIMAL (0) — déjà géré côté site (js/make_colloscopePythonv3.js) comme "faisable"
     # avec la mention "non prouvé optimal".
-    solver.SetTimeLimit(30000)  # 30 secondes
+    solver.SetTimeLimit(300000)  # 5 minutes
 
     # Tolérance d'écart (gap) : accepte une solution à 2% maximum de l'optimum théorique plutôt que
     # d'exiger une preuve d'optimalité stricte — sur un problème de cette taille, les derniers % de
