@@ -87,6 +87,15 @@ def colloscope(request,colloscope_id):
         if (d['bnds']['lb']!="INT_MIN"):
             solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) >= float(d['bnds']['lb']))
         
+    # Limite de temps : sans ça, CBC cherche à PROUVER l'optimalité, ce qui peut prendre un temps
+    # arbitrairement long sur un problème de cette taille (variables/contraintes binaires) — il
+    # vaut largement mieux une bonne solution trouvée en quelques dizaines de secondes qu'une
+    # solution "optimale prouvée" après une attente interminable. En millisecondes ; à ajuster
+    # selon la patience voulue. Si la limite est atteinte, solver.Solve() renvoie FEASIBLE (1) au
+    # lieu de OPTIMAL (0) — déjà géré côté site (js/make_colloscopePythonv3.js) comme "faisable"
+    # avec la mention "non prouvé optimal".
+    solver.SetTimeLimit(30000)  # 30 secondes
+
     tic=time.time()
     status = solver.Solve()
     toc=time.time()
