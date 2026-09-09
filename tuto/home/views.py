@@ -13,6 +13,7 @@ import time
 import csv
 from itertools import combinations
 from ortools.linear_solver import pywraplp
+from ortools.sat.python import cp_model
 #from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem
 import locale
 import sys
@@ -77,64 +78,84 @@ def colloscope(request,colloscope_id):
     data = {'colloscope_id': full_url}
     #PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
 
-    # Chronométré séparément de la résolution (tic/toc plus bas) : SetTimeLimit() ne borne QUE
-    # solver.Solve(), pas la construction du modèle ci-dessous (création des variables + boucle
-    # d'ajout des contraintes, en pur Python) — sur un problème réel de grande taille, cette
-    # construction peut elle-même devenir longue, sans qu'aucune limite ne s'applique. On sépare
-    # les deux temps pour savoir lequel domine réellement (voir dataW plus bas).
+    # Chronométré séparément de la résolution (tic/toc plus bas) : SetTimeLimit()/max_time_in_seconds
+    # ne borne QUE solver.Solve(), pas la construction du modèle ci-dessous (création des variables +
+    # boucle d'ajout des contraintes, en pur Python) — sur un problème réel de grande taille, cette
+    # construction peut elle-même devenir longue, sans qu'aucune limite ne s'applique. On sépare les
+    # deux temps pour savoir lequel domine réellement (voir dataW plus bas).
     tic_construction=time.time()
 
-    solver = pywraplp.Solver('collotron', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
-    colloscope = {var: solver.BoolVar(str(var)) for var in contraintes['binaries']}
+    # Passé de CBC (pywraplp) à CP-SAT (cp_model) : CP-SAT est le solveur de contraintes/MIP hybride
+    # d'OR-Tools, spécifiquement réputé (et généralement bien plus rapide que CBC en pratique) sur ce
+    # genre de problème — affectation/emploi du temps avec beaucoup de variables binaires et de
+    # contraintes de capacité/égalité. Toujours dans le même paquet ortools déjà installé, rien à
+    # ajouter. Le format du modèle reçu de PHP (subjectTo/binaries) est INCHANGÉ — seule cette
+    # fonction change, rien côté PHP/JS à adapter pour ce point.
+    #
+    # to_int_bound() : CP-SAT exige des bornes ENTIÈRES (contrairement à CBC/LP qui acceptait du
+    # flottant) — le PHP envoie parfois une borne en chaîne ("1") ou avec un petit ajustement flottant
+    # hérité de l'ancien solveur LP (ex: valeur+0.05 pour éviter un souci de précision qui ne
+    # concernait que les solveurs continus) : round() récupère la valeur entière voulue dans les deux
+    # cas, sans avoir besoin de toucher au PHP.
+    def to_int_bound(valeur):
+        return int(round(float(valeur)))
 
-    #d=data['subjectTo'][0]
+    model = cp_model.CpModel()
+    colloscope = {var: model.NewBoolVar(str(var)) for var in contraintes['binaries']}
+
     for d in contraintes['subjectTo']:
+        expr = sum(colloscope[var['name']] * var['coef'] for var in d['vars'])
         if (d['bnds']['ub']!="INT_MAX"):
-            solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) <= float(d['bnds']['ub']))
+            model.Add(expr <= to_int_bound(d['bnds']['ub']))
         if (d['bnds']['lb']!="INT_MIN"):
-            solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) >= float(d['bnds']['lb']))
+            model.Add(expr >= to_int_bound(d['bnds']['lb']))
 
     toc_construction=time.time()
 
-    # Limite de temps : sans ça, CBC cherche à PROUVER l'optimalité, ce qui peut prendre un temps
-    # arbitrairement long sur un problème de cette taille (variables/contraintes binaires) — il
-    # vaut largement mieux une bonne solution trouvée en quelques dizaines de secondes qu'une
-    # solution "optimale prouvée" après une attente interminable. En millisecondes ; à ajuster
-    # selon la patience voulue. Si la limite est atteinte, solver.Solve() renvoie FEASIBLE (1) au
-    # lieu de OPTIMAL (0) — déjà géré côté site (js/make_colloscopePythonv3.js) comme "faisable"
-    # avec la mention "non prouvé optimal".
-    solver.SetTimeLimit(300000)  # 5 minutes
+    solver = cp_model.CpSolver()
+
+    # Limite de temps : sans ça, le solveur cherche à PROUVER l'optimalité, ce qui peut prendre un
+    # temps arbitrairement long sur un problème de cette taille — il vaut largement mieux une bonne
+    # solution trouvée en quelques minutes qu'une solution "optimale prouvée" après une attente
+    # interminable. En secondes (pas millisecondes, contrairement à pywraplp.SetTimeLimit) ; à
+    # ajuster selon la patience voulue.
+    solver.parameters.max_time_in_seconds = 300  # 5 minutes
 
     # Tolérance d'écart (gap) : accepte une solution à 2% maximum de l'optimum théorique plutôt que
     # d'exiger une preuve d'optimalité stricte — sur un problème de cette taille, les derniers % de
     # preuve sont souvent ce qui coûte le plus cher en temps, pour un gain quasi nul en pratique.
-    # Testé en local : solver.SetSolverSpecificParametersAsString("ratioGap=...") ne fonctionne PAS
-    # avec la version de Cbc installée ici (2.10.7 — message "not supported by Cbc 2.10.7", ignoré
-    # silencieusement). MPSolverParameters est l'API portable d'OR-Tools (indépendante du solveur
-    # sous-jacent) : testée en local, aucun avertissement.
-    # (SetNumThreads(4) a aussi été essayé, mais produit "No match for threads/4" avec cette version
-    # de Cbc — effet réel incertain malgré un retour "True", et peu de chances d'aider de toute façon
-    # sur un plan PythonAnywhere à un seul cœur : retiré.)
-    solver_params = pywraplp.MPSolverParameters()
-    solver_params.SetDoubleParam(pywraplp.MPSolverParameters.RELATIVE_MIP_GAP, 0.02)
+    # Nativement supporté par CP-SAT (contrairement à SetSolverSpecificParametersAsString qui ne
+    # fonctionnait pas avec la version de Cbc utilisée avant).
+    solver.parameters.relative_gap_limit = 0.02
+
+    # Recherche en parallèle : contrairement à SetNumThreads() côté CBC (qui produisait des erreurs
+    # de parsing avec la version installée), num_search_workers est un paramètre CP-SAT natif et
+    # fiable. N'aide que si le plan PythonAnywhere alloue plus d'un cœur CPU ; sans effet néfaste
+    # sinon.
+    solver.parameters.num_search_workers = 4
 
     tic=time.time()
-    status = solver.Solve(solver_params)
+    status_brut = solver.Solve(model)
     toc=time.time()
 
-    #print(pywraplp.Solver.OPTIMAL)
-    """
-    resultats = {}
-    for c in colloscope:
-        resultats[c]=colloscope[c].solution_value()
+    # Traduit le statut CP-SAT (OPTIMAL=4, FEASIBLE=2, INFEASIBLE=3, MODEL_INVALID=1, UNKNOWN=0) vers
+    # la même convention numérique que l'ancien solveur pywraplp (OPTIMAL=0, FEASIBLE=1, INFEASIBLE=2,
+    # ...) — déjà comprise partout ailleurs (fichier de résultats, js/make_colloscopePythonv3.js) :
+    # aucun changement nécessaire côté site pour ce point non plus.
+    STATUT_CPSAT_VERS_PYWRAPLP = {
+        cp_model.OPTIMAL: 0,
+        cp_model.FEASIBLE: 1,
+        cp_model.INFEASIBLE: 2,
+        cp_model.MODEL_INVALID: 5,
+        cp_model.UNKNOWN: 6,
+    }
+    status = STATUT_CPSAT_VERS_PYWRAPLP.get(status_brut, 6)
 
-    """
     resultats = []
     for c in colloscope:
-        if (colloscope[c].solution_value()):
+        if (solver.Value(colloscope[c])):
             resultats.append(c)
-        #print(c, colloscope[c].solution_value())
-    
+
     # Obtenir la date actuelle
     current_date = datetime.now()
     # Préparation des données à écrire dans le fichier JSON
