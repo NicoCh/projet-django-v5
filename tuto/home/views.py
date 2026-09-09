@@ -77,6 +77,13 @@ def colloscope(request,colloscope_id):
     data = {'colloscope_id': full_url}
     #PROBLEMS_ROOT = 'localhost/CollesAZ/contraintes'
 
+    # Chronométré séparément de la résolution (tic/toc plus bas) : SetTimeLimit() ne borne QUE
+    # solver.Solve(), pas la construction du modèle ci-dessous (création des variables + boucle
+    # d'ajout des contraintes, en pur Python) — sur un problème réel de grande taille, cette
+    # construction peut elle-même devenir longue, sans qu'aucune limite ne s'applique. On sépare
+    # les deux temps pour savoir lequel domine réellement (voir dataW plus bas).
+    tic_construction=time.time()
+
     solver = pywraplp.Solver('collotron', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
     colloscope = {var: solver.BoolVar(str(var)) for var in contraintes['binaries']}
 
@@ -86,7 +93,9 @@ def colloscope(request,colloscope_id):
             solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) <= float(d['bnds']['ub']))
         if (d['bnds']['lb']!="INT_MIN"):
             solver.Add(sum([colloscope[var['name']]*var['coef'] for var in d['vars']]) >= float(d['bnds']['lb']))
-        
+
+    toc_construction=time.time()
+
     # Limite de temps : sans ça, CBC cherche à PROUVER l'optimalité, ce qui peut prendre un temps
     # arbitrairement long sur un problème de cette taille (variables/contraintes binaires) — il
     # vaut largement mieux une bonne solution trouvée en quelques dizaines de secondes qu'une
@@ -96,8 +105,21 @@ def colloscope(request,colloscope_id):
     # avec la mention "non prouvé optimal".
     solver.SetTimeLimit(30000)  # 30 secondes
 
+    # Tolérance d'écart (gap) : accepte une solution à 2% maximum de l'optimum théorique plutôt que
+    # d'exiger une preuve d'optimalité stricte — sur un problème de cette taille, les derniers % de
+    # preuve sont souvent ce qui coûte le plus cher en temps, pour un gain quasi nul en pratique.
+    # Testé en local : solver.SetSolverSpecificParametersAsString("ratioGap=...") ne fonctionne PAS
+    # avec la version de Cbc installée ici (2.10.7 — message "not supported by Cbc 2.10.7", ignoré
+    # silencieusement). MPSolverParameters est l'API portable d'OR-Tools (indépendante du solveur
+    # sous-jacent) : testée en local, aucun avertissement.
+    # (SetNumThreads(4) a aussi été essayé, mais produit "No match for threads/4" avec cette version
+    # de Cbc — effet réel incertain malgré un retour "True", et peu de chances d'aider de toute façon
+    # sur un plan PythonAnywhere à un seul cœur : retiré.)
+    solver_params = pywraplp.MPSolverParameters()
+    solver_params.SetDoubleParam(pywraplp.MPSolverParameters.RELATIVE_MIP_GAP, 0.02)
+
     tic=time.time()
-    status = solver.Solve()
+    status = solver.Solve(solver_params)
     toc=time.time()
 
     #print(pywraplp.Solver.OPTIMAL)
@@ -119,6 +141,7 @@ def colloscope(request,colloscope_id):
     dataW = {
         'status': status,
         'temps': toc - tic,
+        'temps_construction': toc_construction - tic_construction,
         'resultats': resultats,
         'date' : current_date.strftime('%Y-%m-%d %H:%M:%S')
     }
