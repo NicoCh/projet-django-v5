@@ -151,10 +151,18 @@ def colloscope(request,colloscope_id):
     }
     status = STATUT_CPSAT_VERS_PYWRAPLP.get(status_brut, 6)
 
+    # Bug réel corrigé : solver.Value() suppose qu'une solution existe en mémoire — ce qui n'est
+    # PAS le cas si le statut est INFEASIBLE (aucune solution possible) ou UNKNOWN (temps écoulé
+    # avant d'en trouver une seule). L'appeler quand même plantait la requête entière (IndexError,
+    # "list index out of range") AVANT d'écrire le fichier de résultats — le site restait donc à
+    # interroger indéfiniment un fichier qui n'apparaîtrait jamais, sans aucun message clair.
+    # Constaté en production juste après l'ajout d'une nouvelle contrainte (qui a normalement rendu
+    # le problème infaisable ou trop dur pour la limite de temps — un cas normal, pas une erreur).
     resultats = []
-    for c in colloscope:
-        if (solver.Value(colloscope[c])):
-            resultats.append(c)
+    if status_brut in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        for c in colloscope:
+            if (solver.Value(colloscope[c])):
+                resultats.append(c)
 
     # Obtenir la date actuelle
     current_date = datetime.now()
